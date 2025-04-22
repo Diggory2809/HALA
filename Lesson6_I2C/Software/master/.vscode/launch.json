@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "d:/HALA/HALA_Learning/Embedded/HALA_Learning_EmbeddedAutomotive/Lesson6_I2C_P2/Software/master",
+      "program": "d:/HALA/HALA_Learning/Embedded/HALA_Learning_EmbeddedAutomotive/Lesson6_I2C_P2/Software/master/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
+}

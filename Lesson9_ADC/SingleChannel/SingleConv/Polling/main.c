@@ -1,0 +1,121 @@
+#include "stm32f10x.h"                  // Device header
+#include "stm32f10x_adc.h"              // Device:StdPeriph Drivers:ADC
+#include "stm32f10x_adc.h"              // Device:StdPeriph Drivers:ADC
+#include "stm32f10x_gpio.h"             // Device:StdPeriph Drivers:GPIO
+#include "stm32f10x_rcc.h"              // Device:StdPeriph Drivers:RCC
+#include "stm32f10x_tim.h"              // Device:StdPeriph Drivers:TIM
+
+#define map(x)		x*16	
+
+void RCC_ClockConfiguration();
+void GPIO_Configuration();
+void DMA_Configuration();
+void ADC_Configuration();
+void TIM_Configuration();	
+void Delay_us(uint32_t timeout);
+__IO uint16_t ADC_ConvertedValue;
+
+int main ()
+{
+	RCC_ClockConfiguration();
+	GPIO_Configuration();
+	ADC_Configuration();
+	TIM_Configuration();	
+	while (1)
+	{
+		ADC_SoftwareStartConvCmd(ADC1, ENABLE);
+		while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC));	
+		ADC_ConvertedValue = ADC_GetConversionValue(ADC1); 
+		TIM2->CCR1 = map(ADC_ConvertedValue);
+		Delay_us(1000);
+	}
+	
+	return 0;
+}
+
+void RCC_ClockConfiguration()
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 | RCC_APB1Periph_TIM3, ENABLE);
+}
+
+void GPIO_Configuration()
+{
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	
+	/*	PA1	->	ADC1
+			PA0	->	TIM2_CH1	*/
+	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_1;
+	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AIN;
+	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStruct);
+	
+	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_0;
+	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
+	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStruct);
+}
+
+
+void ADC_Configuration()
+{
+	ADC_InitTypeDef ADC_InitStruct = {0};
+	ADC_InitStruct.ADC_Mode = ADC_Mode_Independent;
+	ADC_InitStruct.ADC_ScanConvMode = DISABLE;
+	ADC_InitStruct.ADC_ContinuousConvMode = DISABLE;
+	ADC_InitStruct.ADC_DataAlign = ADC_DataAlign_Right;
+	ADC_InitStruct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
+	ADC_InitStruct.ADC_NbrOfChannel = 1;
+	
+	ADC_Init(ADC1, &ADC_InitStruct);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_1, 1, ADC_SampleTime_1Cycles5);
+	ADC_Cmd(ADC1, ENABLE);
+	ADC_ResetCalibration(ADC1);
+	while(ADC_GetResetCalibrationStatus(ADC1));
+	ADC_StartCalibration(ADC1);
+	while(ADC_GetCalibrationStatus(ADC1));
+}
+
+void TIM_Configuration()
+{
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStruct = {0};
+	TIM_OCInitTypeDef TIM_OCInitStruct = {0};
+	
+	TIM_TimeBaseInitStruct.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInitStruct.TIM_ClockDivision = 0;
+	TIM_TimeBaseInitStruct.TIM_Prescaler = 0;
+	TIM_TimeBaseInitStruct.TIM_Period = 65535;
+	
+	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseInitStruct);
+	
+	TIM_OCInitStruct.TIM_OCMode = TIM_OCMode_PWM1;
+	TIM_OCInitStruct.TIM_OutputState = TIM_OutputState_Enable;
+	TIM_OCInitStruct.TIM_OutputNState = TIM_OutputNState_Disable;
+	TIM_OCInitStruct.TIM_Pulse = 0;
+	TIM_OCInitStruct.TIM_OCPolarity = TIM_OCPolarity_High;
+	TIM_OCInitStruct.TIM_OCNPolarity = TIM_OCNPolarity_High;
+	TIM_OCInitStruct.TIM_OCIdleState = TIM_OCIdleState_Reset;
+	TIM_OCInitStruct.TIM_OCNIdleState = TIM_OCNIdleState_Reset;
+	
+	TIM_OC1Init(TIM2, &TIM_OCInitStruct);
+	TIM_OC1PreloadConfig(TIM2, TIM_OCPreload_Enable);
+	TIM_ARRPreloadConfig(TIM2, ENABLE);
+	TIM_Cmd(TIM2, ENABLE);
+	
+	TIM_TimeBaseInitStruct.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInitStruct.TIM_ClockDivision = 0;
+	TIM_TimeBaseInitStruct.TIM_Prescaler = 71;
+	TIM_TimeBaseInitStruct.TIM_Period = 65535;
+	
+	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseInitStruct);
+	TIM_Cmd(TIM3, ENABLE);
+}
+void Delay_us(uint32_t timeout)
+{
+	TIM_SetCounter(TIM3, 0);
+	while (TIM_GetCounter(TIM3) < timeout)
+	{
+	}
+	
+}
